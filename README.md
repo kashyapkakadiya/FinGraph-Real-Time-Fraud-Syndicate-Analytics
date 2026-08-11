@@ -16,3 +16,4 @@ Kafka, Neo4j, Python, (PyFlink)
 
 ## Progress Log
 - Day 1: Environment scaffold (Docker Compose: Kafka, Zookeeper, Neo4j), repo structure
+- Day 2: Core data model (Person, Account, Bank) + baseline random transaction generator
