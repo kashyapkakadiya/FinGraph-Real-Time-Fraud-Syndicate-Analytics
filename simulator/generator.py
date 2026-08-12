@@ -42,7 +42,18 @@ def make_transaction(world: World) -> dict:
     }
 
 
+def generate_mixed_stream(world: World, normal_count=200, fraud_ring_count=2, smurfs_per_ring=50):
+    """A realistic batch: mostly normal transactions with occasional syndicate activity buried inside."""
+    from syndicate import generate_starburst_pattern
+
+    stream = [make_transaction(world) for _ in range(normal_count)]
+    for _ in range(fraud_ring_count):
+        stream.extend(generate_starburst_pattern(world, num_smurfs=smurfs_per_ring))
+    random.shuffle(stream)
+    return stream
+
 if __name__ == "__main__":
     world = World()
-    for _ in range(10):
-        print(make_transaction(world))
+    batch = generate_mixed_stream(world)
+    fraud_count = sum(1 for t in batch if t["is_synthetic_fraud"])
+    print(f"Generated {len(batch)} transactions, {fraud_count} are part of a smurfing syndicate")
