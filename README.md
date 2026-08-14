@@ -19,3 +19,4 @@ Kafka, Neo4j, Python, (PyFlink)
 - Day 2: Core data model (Person, Account, Bank) + baseline random transaction generator
 - Day 3: Syndicate/smurfing pattern generator — "Starburst" (N accounts -> 1 shell account), mixed into normal traffic
 - Day 4: Kafka producer — simulator streams transactions (incl. syndicate bursts) into `fingraph.transactions` topic in real time
+- Day 5: Neo4j graph schema — constraints/indexes for Person, Account, Bank, IPAddress nodes and TRANSFERRED_TO edges
