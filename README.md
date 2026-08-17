@@ -20,3 +20,4 @@ Kafka, Neo4j, Python, (PyFlink)
 - Day 3: Syndicate/smurfing pattern generator — "Starburst" (N accounts -> 1 shell account), mixed into normal traffic
 - Day 4: Kafka producer — simulator streams transactions (incl. syndicate bursts) into `fingraph.transactions` topic in real time
 - Day 5: Neo4j graph schema — constraints/indexes for Person, Account, Bank, IPAddress nodes and TRANSFERRED_TO edges
+- Day 6: PyFlink stream processor (Table API/SQL) — reads fingraph.transactions from Kafka, live-parses JSON, flags fraud. Note: switched from DataStream+Python UDF to Table API to work around a known PyFlink-on-Windows Beam-harness bug.
