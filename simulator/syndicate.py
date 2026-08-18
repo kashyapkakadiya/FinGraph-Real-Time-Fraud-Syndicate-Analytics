@@ -17,7 +17,7 @@ def make_smurf_accounts(world: World, count: int) -> list[Account]:
     """Distinct 'mule' accounts with no shared IPs — each funnels micro-transactions."""
     accounts = []
     for _ in range(count):
-        owner = Person()  # fresh Person -> fresh fake IP each time
+        owner = Person()
         bank = random.choice(world.banks)
         accounts.append(Account(owner=owner, bank=bank))
     return accounts
@@ -34,7 +34,7 @@ def generate_starburst_pattern(world: World, num_smurfs: int = 50) -> list[dict]
 
     transactions = []
     for smurf in smurfs:
-        amount = round(random.uniform(9000, 9900), 2)  # deliberately under the $10k rule
+        amount = round(random.uniform(9000, 9900), 2)
         transactions.append({
             "transaction_id": f"TXN-{uuid.uuid4().hex[:10].upper()}",
             "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -47,7 +47,7 @@ def generate_starburst_pattern(world: World, num_smurfs: int = 50) -> list[dict]
             "amount": amount,
             "sender_bank": smurf.bank.bank_id,
             "receiver_bank": shell.bank.bank_id,
-            "is_synthetic_fraud": True,   # ground-truth label, useful later for validation
+            "is_synthetic_fraud": True,
             "syndicate_id": f"SYN-{uuid.uuid4().hex[:8].upper()}",
         })
 

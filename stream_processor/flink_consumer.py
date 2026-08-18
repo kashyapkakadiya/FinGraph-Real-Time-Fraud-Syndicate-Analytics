@@ -15,24 +15,21 @@ def main():
     t_env = TableEnvironment.create(settings)
     t_env.get_config().set("pipeline.jars", f"file:///{JAR_PATH}")
 
-    # Define the Kafka topic as a SQL table. The JSON format maps fields by
-    # name automatically; any missing field (e.g. syndicate_id on a normal
-    # transaction) just comes through as NULL.
     t_env.execute_sql(f"""
-        CREATE TABLE transactions (
-            transaction_id     STRING,
-            `timestamp`        STRING,
-            sender_account      STRING,
-            sender_person       STRING,
-            sender_ip           STRING,
-            receiver_account    STRING,
-            receiver_person     STRING,
-            receiver_ip         STRING,
-            amount               DOUBLE,
-            sender_bank          STRING,
-            receiver_bank        STRING,
-            is_synthetic_fraud   BOOLEAN,
-            syndicate_id         STRING
+        CREATE TABLE transactions_raw (
+            transaction_id      STRING,
+            `timestamp`         STRING,
+            sender_account       STRING,
+            sender_person        STRING,
+            sender_ip            STRING,
+            receiver_account     STRING,
+            receiver_person      STRING,
+            receiver_ip          STRING,
+            amount                DOUBLE,
+            sender_bank           STRING,
+            receiver_bank         STRING,
+            is_synthetic_fraud    BOOLEAN,
+            syndicate_id          STRING
         ) WITH (
             'connector' = 'kafka',
             'topic' = '{TOPIC}',
@@ -44,19 +41,37 @@ def main():
         )
     """)
 
-    # Pure SQL transformation — no Python UDF, so no Beam harness subprocess.
-    result_table = t_env.sql_query("""
+    clean_table = t_env.sql_query("""
+        SELECT *
+        FROM (
+            SELECT *,
+                   ROW_NUMBER() OVER (
+                       PARTITION BY transaction_id
+                       ORDER BY `timestamp`
+                   ) AS row_num
+            FROM transactions_raw
+            WHERE transaction_id IS NOT NULL
+              AND sender_account IS NOT NULL
+              AND receiver_account IS NOT NULL
+              AND sender_account <> receiver_account
+              AND amount > 0
+              AND amount < 1000000
+        )
+        WHERE row_num = 1
+    """)
+
+    t_env.create_temporary_view("transactions_clean", clean_table)
+
+    result = t_env.sql_query("""
         SELECT
             transaction_id,
             sender_account,
             receiver_account,
             amount,
             CASE WHEN is_synthetic_fraud THEN 'FRAUD' ELSE 'normal' END AS flag
-        FROM transactions
+        FROM transactions_clean
     """)
-
-    # .execute().print() streams results to the console as they arrive.
-    result_table.execute().print()
+    result.execute().print()
 
 
 if __name__ == "__main__":

@@ -13,7 +13,6 @@ def apply_schema():
 
         with driver.session() as session:
             for stmt in statements:
-                # skip pure-comment blocks left after split
                 clean = "\n".join(line for line in stmt.splitlines() if not line.strip().startswith("//"))
                 if clean.strip():
                     session.run(clean)

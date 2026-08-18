@@ -21,3 +21,8 @@ Kafka, Neo4j, Python, (PyFlink)
 - Day 4: Kafka producer — simulator streams transactions (incl. syndicate bursts) into `fingraph.transactions` topic in real time
 - Day 5: Neo4j graph schema — constraints/indexes for Person, Account, Bank, IPAddress nodes and TRANSFERRED_TO edges
 - Day 6: PyFlink stream processor (Table API/SQL) — reads fingraph.transactions from Kafka, live-parses JSON, flags fraud. Note: switched from DataStream+Python UDF to Table API to work around a known PyFlink-on-Windows Beam-harness bug.
+> Note: `stream_processor/jars/flink-sql-connector-kafka-3.2.0-1.19.jar` is not committed (binary,
+> a few MB). Download it manually before running Day 6+ scripts:
+> https://repo.maven.apache.org/maven2/org/apache/flink/flink-sql-connector-kafka/3.2.0-1.19/flink-sql-connector-kafka-3.2.0-1.19.jar
+> Place it in `stream_processor/jars/`.
+- Day 7: Data cleaning/validation — SQL-based filtering (null accounts, invalid amounts, self-transfers) + dedup on transaction_id via ROW_NUMBER()
