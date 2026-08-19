@@ -9,7 +9,7 @@ syndicates where many unrelated-looking accounts each send small amounts
 through intermediary accounts to evade detection.
 
 ## Architecture
-Transaction Simulator → Kafka → Stream Processor → Neo4j (Graph DB) → Cypher analysis
+Transaction Simulator → Kafka → PyFlink (Table API/SQL, cleaning + dedup) → Neo4j (real-time upsert) → Cypher analysis
 
 ## Stack
 Kafka, Neo4j, Python, (PyFlink)
@@ -26,3 +26,8 @@ Kafka, Neo4j, Python, (PyFlink)
 > https://repo.maven.apache.org/maven2/org/apache/flink/flink-sql-connector-kafka/3.2.0-1.19/flink-sql-connector-kafka-3.2.0-1.19.jar
 > Place it in `stream_processor/jars/`.
 - Day 7: Data cleaning/validation — SQL-based filtering (null accounts, invalid amounts, self-transfers) + dedup on transaction_id via ROW_NUMBER()
+- Day 8: Real-time Neo4j sink — Flink's `table_result.collect()` streams cleaned transactions to the
+  Python client, which upserts them into Neo4j via MERGE (Person, Account, Bank, IPAddress nodes;
+  OWNS, HELD_AT, USED_IP, TRANSFERRED_TO edges). Verified visually in Neo4j Browser: Starburst
+  smurfing patterns render as literal star-shaped clusters (e.g. ACC-89, ACC-B8, ACC-27, ACC-5F —
+  each with 10-15+ distinct sender accounts funneling into one shell account).
