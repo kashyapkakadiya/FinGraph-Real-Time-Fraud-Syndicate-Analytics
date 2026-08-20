@@ -31,3 +31,7 @@ Kafka, Neo4j, Python, (PyFlink)
   OWNS, HELD_AT, USED_IP, TRANSFERRED_TO edges). Verified visually in Neo4j Browser: Starburst
   smurfing patterns render as literal star-shaped clusters (e.g. ACC-89, ACC-B8, ACC-27, ACC-5F —
   each with 10-15+ distinct sender accounts funneling into one shell account).
+- Day 9: Cypher analysis queries — risk_scoring.cypher (fan-in x structuring-ratio) ranks shell
+  accounts correctly against real simulator data; circular_flow_detection.cypher (A->B->C->A,
+  3-5 hops) validated against seeded synthetic cycle (simulator doesn't yet generate real
+  circular patterns, only Starburst).
