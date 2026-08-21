@@ -1,8 +1,3 @@
-// Test seed data: a synthetic circular flow (X -> Y -> Z -> X).
-// Your simulator doesn't currently generate this pattern (it only produces
-// Starburst/smurfing), so run this once to prove circular_flow_detection.cypher
-// actually fires correctly. Safe to delete afterward -- see cleanup query below.
-
 MERGE (x:Account {account_id: 'TEST-CYCLE-X'})
 MERGE (y:Account {account_id: 'TEST-CYCLE-Y'})
 MERGE (z:Account {account_id: 'TEST-CYCLE-Z'})

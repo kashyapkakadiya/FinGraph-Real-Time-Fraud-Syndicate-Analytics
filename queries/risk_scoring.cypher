@@ -1,11 +1,7 @@
-// Node Risk Scoring
-// Scores each Account on how "Starburst-shell-like" it looks:
-//   fan_in            -- how many DISTINCT accounts send it money (a real customer
-//                         gets paid by a handful of people; a shell collects from dozens)
-//   structuring_ratio  -- what fraction of its incoming transactions land in the
-//                         $9,000-$9,999.99 band, just under the $10k reporting threshold
-//   risk_score         -- fan_in weighted by structuring_ratio, so an account only
-//                         scores high if BOTH signals are present together
+// BASELINE VERSION -- kept intentionally for comparison.
+// See risk_scoring_optimized.cypher for the production version and
+// PIPELINE_AUDIT.md for the full before/after performance analysis
+// (this version: ~188ms; optimized version: ~4ms server-side).
 
 MATCH (sender:Account)-[t:TRANSFERRED_TO]->(receiver:Account)
 WITH receiver,

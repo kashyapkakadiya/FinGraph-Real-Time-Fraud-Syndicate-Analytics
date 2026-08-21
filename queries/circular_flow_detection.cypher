@@ -1,8 +1,7 @@
-// Circular Flow Detection
-// Finds money laundering cycles: A -> B -> C -> ... -> A
-// Hop range 3..5 requires a genuine multi-account cycle, not just two accounts
-// bouncing money back and forth (which would be a 2-hop "cycle" and isn't
-// the laundering pattern we care about).
+// BASELINE VERSION -- kept intentionally for comparison.
+// See circular_flow_detection_optimized.cypher for the production version and
+// PIPELINE_AUDIT.md for the full before/after performance analysis
+// (this version: ~209ms; optimized version: ~1ms server-side).
 
 MATCH path = (a:Account)-[:TRANSFERRED_TO*3..5]->(a)
 WITH path,
