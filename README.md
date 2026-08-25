@@ -102,11 +102,30 @@ python run_queries.py
 ```
 
 **Neo4j Browser** (visualize the graph): http://localhost:7474 — login `neo4j` / `fingraph123`
+
+Basic view (fast, but always shows the same ~100 edges regardless of what's new --
+Neo4j's default scan order returns matches in roughly creation order, and LIMIT 100
+with no ORDER BY just takes the first 100 it finds every time):
 ```cypher
 MATCH (shell:Account)<-[t:TRANSFERRED_TO]-(smurf:Account)
 WHERE t.is_synthetic_fraud = true
 RETURN shell, smurf, t
 LIMIT 100
+```
+
+Recency-ordered view (shows the newest fraud edges -- use this to demonstrate the
+graph is live and updating, not a static snapshot):
+```cypher
+MATCH (shell:Account)<-[t:TRANSFERRED_TO]-(smurf:Account)
+WHERE t.is_synthetic_fraud = true
+RETURN shell, smurf, t
+ORDER BY t.timestamp DESC
+LIMIT 100
+```
+
+Live-ness proof (run before and after producer.py, watch the count change):
+```cypher
+MATCH ()-[t:TRANSFERRED_TO]->() RETURN count(t) AS total_edges;
 ```
 
 ## Note on PyFlink + Windows
@@ -137,6 +156,8 @@ see PIPELINE_AUDIT.md for details.
 - Day 10: Query optimization -- index-anchored risk scoring + candidate-narrowed circular flow
   detection + warm/server-side timing methodology, bringing both queries from 188-209ms down to
   1-4ms server-side. Mid-project review complete -- see PIPELINE_AUDIT.md
+- Day 11: Neo4j GDS setup — verified plugin, projected in-memory graph catalog
+  (Account nodes, TRANSFERRED_TO relationships) for Week 3 algorithm work
 
 ## Scope note
 This covers Week 1 (Ingestion Setup, Graph Schema) and Week 2 (Stream Processing, Cypher
