@@ -162,6 +162,10 @@ see PIPELINE_AUDIT.md for details.
   gds.wcc.write, writing wcc_component_id onto Account nodes. Components combining
   high transaction volume with a high fraud_ratio are algorithmically-discovered
   syndicates, replacing manual per-hub Cypher queries.
+- Day 13: Louvain community detection (GDS) — writes louvain_community_id onto Account
+  nodes, tested against Day 12's giant WCC components to see if modularity-based clustering
+  separates syndicates from bystander traffic. [Fill in actual split counts / fraud_ratio
+  improvement after running.]
 
 ## Scope note
 This covers Week 1 (Ingestion Setup, Graph Schema) and Week 2 (Stream Processing, Cypher
