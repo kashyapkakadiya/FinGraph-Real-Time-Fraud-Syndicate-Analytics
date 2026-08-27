@@ -158,6 +158,10 @@ see PIPELINE_AUDIT.md for details.
   1-4ms server-side. Mid-project review complete -- see PIPELINE_AUDIT.md
 - Day 11: Neo4j GDS setup — verified plugin, projected in-memory graph catalog
   (Account nodes, TRANSFERRED_TO relationships) for Week 3 algorithm work
+- Day 12: Weakly Connected Components (GDS) — auto-groups syndicate clusters via
+  gds.wcc.write, writing wcc_component_id onto Account nodes. Components combining
+  high transaction volume with a high fraud_ratio are algorithmically-discovered
+  syndicates, replacing manual per-hub Cypher queries.
 
 ## Scope note
 This covers Week 1 (Ingestion Setup, Graph Schema) and Week 2 (Stream Processing, Cypher
