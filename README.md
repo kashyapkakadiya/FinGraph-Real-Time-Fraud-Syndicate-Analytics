@@ -166,6 +166,11 @@ see PIPELINE_AUDIT.md for details.
   nodes, tested against Day 12's giant WCC components to see if modularity-based clustering
   separates syndicates from bystander traffic. [Fill in actual split counts / fraud_ratio
   improvement after running.]
+- Day 14: PageRank centrality (GDS, unweighted + amount-weighted) — writes pagerank_unweighted
+  and pagerank_weighted onto Account nodes. Graph projection updated to include 'amount' as a
+  relationship property for weighting. Blended view cross-references PageRank against fan-in,
+  WCC component, and Louvain community for a multi-signal risk picture. [Add actual top-account
+  overlap findings after running.]
 
 ## Scope note
 This covers Week 1 (Ingestion Setup, Graph Schema) and Week 2 (Stream Processing, Cypher
