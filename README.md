@@ -171,6 +171,9 @@ see PIPELINE_AUDIT.md for details.
   relationship property for weighting. Blended view cross-references PageRank against fan-in,
   WCC component, and Louvain community for a multi-signal risk picture. [Add actual top-account
   overlap findings after running.]
+- Day 15: Backend API (FastAPI) — /api/stats, /api/risk-scores (Day 14's blended view),
+  /api/graph (nodes+edges, recency-ordered), /api/account/{id}. CORS enabled for the
+  React dashboard (Day 16). Interactive docs at /docs.
 
 ## Scope note
 This covers Week 1 (Ingestion Setup, Graph Schema) and Week 2 (Stream Processing, Cypher

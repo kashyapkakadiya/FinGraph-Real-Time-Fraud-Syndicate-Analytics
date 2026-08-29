@@ -1,0 +1,136 @@
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from neo4j import GraphDatabase
+
+URI = "bolt://localhost:7687"
+AUTH = ("neo4j", "fingraph123")
+
+app = FastAPI(title="FinGraph API")
+
+# Allow the React dev server (Day 16) to call this API from the browser.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "http://localhost:5173"],
+    allow_methods=["GET"],
+    allow_headers=["*"],
+)
+
+driver = GraphDatabase.driver(URI, auth=AUTH)
+
+
+@app.on_event("shutdown")
+def shutdown():
+    driver.close()
+
+
+@app.get("/api/stats")
+def get_stats():
+    """
+    Top-level numbers for a dashboard header: accounts, transactions, fraud rate.
+
+    NOTE: an earlier version of this query did
+        MATCH (a:Account) OPTIONAL MATCH ()-[t:TRANSFERRED_TO]->()
+    -- two patterns sharing no variable, which Neo4j joins as a CARTESIAN
+    PRODUCT (every account paired with every relationship), inflating
+    transaction_count to accounts * real_transactions. Fixed by running each
+    count in its own CALL {} subquery, so they're computed independently and
+    combined as a single row instead of multiplied together.
+    """
+    with driver.session() as session:
+        result = session.run("""
+            CALL {
+                MATCH (a:Account) RETURN count(a) AS account_count
+            }
+            CALL {
+                MATCH ()-[t:TRANSFERRED_TO]->()
+                RETURN count(t) AS transaction_count,
+                       sum(CASE WHEN t.is_synthetic_fraud THEN 1 ELSE 0 END) AS fraud_count
+            }
+            RETURN account_count, transaction_count, fraud_count
+        """)
+        record = result.single()
+        return {
+            "account_count": record["account_count"],
+            "transaction_count": record["transaction_count"],
+            "fraud_count": record["fraud_count"],
+        }
+
+
+@app.get("/api/risk-scores")
+def get_risk_scores(limit: int = 25):
+    """
+    Blended risk view (Day 14's approach): fan-in, WCC component,
+    Louvain community, and weighted PageRank score together.
+    """
+    with driver.session() as session:
+        result = session.run("""
+            MATCH (receiver:Account)
+            OPTIONAL MATCH (sender:Account)-[t:TRANSFERRED_TO]->(receiver)
+            WHERE t.amount >= 9000 AND t.amount < 10000
+            WITH receiver,
+                 count(DISTINCT sender) AS fan_in,
+                 receiver.wcc_component_id AS wcc_component,
+                 receiver.louvain_community_id AS louvain_community,
+                 receiver.pagerank_weighted AS pagerank_weighted
+            WHERE fan_in >= 3
+            RETURN receiver.account_id AS account_id,
+                   fan_in,
+                   wcc_component,
+                   louvain_community,
+                   round(pagerank_weighted, 4) AS pagerank_weighted
+            ORDER BY pagerank_weighted DESC
+            LIMIT $limit
+        """, limit=limit)
+        return [dict(r) for r in result]
+
+
+@app.get("/api/graph")
+def get_graph(limit: int = 150):
+    """
+    Nodes + edges in a shape a force-directed frontend (D3/vis.js/react-force-graph)
+    can consume directly. Ordered by recency so the view reflects the newest
+    activity, same fix applied to the README's Browser query.
+    """
+    with driver.session() as session:
+        result = session.run("""
+            MATCH (sender:Account)-[t:TRANSFERRED_TO]->(receiver:Account)
+            RETURN sender.account_id AS source,
+                   receiver.account_id AS target,
+                   t.amount AS amount,
+                   t.is_synthetic_fraud AS is_fraud,
+                   t.timestamp AS timestamp
+            ORDER BY t.timestamp DESC
+            LIMIT $limit
+        """, limit=limit)
+        edges = [dict(r) for r in result]
+
+        node_ids = set()
+        for e in edges:
+            node_ids.add(e["source"])
+            node_ids.add(e["target"])
+        nodes = [{"id": nid} for nid in node_ids]
+
+        return {"nodes": nodes, "edges": edges}
+
+
+@app.get("/api/account/{account_id}")
+def get_account(account_id: str):
+    """Detail view for a single account -- what a dashboard drill-down click hits."""
+    with driver.session() as session:
+        result = session.run("""
+            MATCH (a:Account {account_id: $account_id})
+            OPTIONAL MATCH (sender:Account)-[t_in:TRANSFERRED_TO]->(a)
+            OPTIONAL MATCH (a)-[t_out:TRANSFERRED_TO]->(receiver:Account)
+            RETURN a.account_id AS account_id,
+                   a.wcc_component_id AS wcc_component,
+                   a.louvain_community_id AS louvain_community,
+                   a.pagerank_weighted AS pagerank_weighted,
+                   count(DISTINCT sender) AS distinct_senders,
+                   count(DISTINCT receiver) AS distinct_receivers,
+                   count(DISTINCT t_in) AS incoming_txn_count,
+                   count(DISTINCT t_out) AS outgoing_txn_count
+        """, account_id=account_id)
+        record = result.single()
+        if record is None or record["account_id"] is None:
+            raise HTTPException(status_code=404, detail="Account not found")
+        return dict(record)
