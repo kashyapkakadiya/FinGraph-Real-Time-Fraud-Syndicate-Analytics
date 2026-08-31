@@ -174,6 +174,9 @@ see PIPELINE_AUDIT.md for details.
 - Day 15: Backend API (FastAPI) — /api/stats, /api/risk-scores (Day 14's blended view),
   /api/graph (nodes+edges, recency-ordered), /api/account/{id}. CORS enabled for the
   React dashboard (Day 16). Interactive docs at /docs.
+- Day 16: React dashboard scaffold (Vite + react-force-graph-2d) — fetches /api/stats,
+  /api/risk-scores, /api/graph from the Day 15 backend. Fraud edges render red/thick,
+  making Starburst patterns visually obvious on load.
 
 ## Scope note
 This covers Week 1 (Ingestion Setup, Graph Schema) and Week 2 (Stream Processing, Cypher

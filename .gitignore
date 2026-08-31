@@ -6,3 +6,4 @@ venv/
 *.log
 .DS_Store
 stream_processor/jars/
+node_modules/
