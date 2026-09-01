@@ -177,6 +177,10 @@ see PIPELINE_AUDIT.md for details.
 - Day 16: React dashboard scaffold (Vite + react-force-graph-2d) — fetches /api/stats,
   /api/risk-scores, /api/graph from the Day 15 backend. Fraud edges render red/thick,
   making Starburst patterns visually obvious on load.
+- Day 17: Dashboard interactivity — click-to-expand ("trace the money trail": clicking a node
+  fetches its connections via new /api/account/{id}/edges endpoint and merges them into the
+  graph), account detail panel, fan-in threshold slider on the risk table, responsive canvas
+  sizing.
 
 ## Scope note
 This covers Week 1 (Ingestion Setup, Graph Schema) and Week 2 (Stream Processing, Cypher

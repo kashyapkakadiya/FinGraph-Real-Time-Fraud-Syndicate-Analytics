@@ -134,3 +134,31 @@ def get_account(account_id: str):
         if record is None or record["account_id"] is None:
             raise HTTPException(status_code=404, detail="Account not found")
         return dict(record)
+
+
+@app.get("/api/account/{account_id}/edges")
+def get_account_edges(account_id: str, limit: int = 50):
+    """
+    An account's immediate incoming + outgoing transactions, in the same
+    {source, target, amount, is_fraud, timestamp} shape /api/graph uses --
+    this is what the dashboard calls when a node is clicked, to expand the
+    graph outward from that account ("trace the money trail").
+    """
+    with driver.session() as session:
+        result = session.run("""
+            MATCH (a:Account {account_id: $account_id})
+            OPTIONAL MATCH (sender:Account)-[t_in:TRANSFERRED_TO]->(a)
+            OPTIONAL MATCH (a)-[t_out:TRANSFERRED_TO]->(receiver:Account)
+            WITH
+                collect(DISTINCT {source: sender.account_id, target: a.account_id,
+                                  amount: t_in.amount, is_fraud: t_in.is_synthetic_fraud,
+                                  timestamp: t_in.timestamp}) AS incoming,
+                collect(DISTINCT {source: a.account_id, target: receiver.account_id,
+                                  amount: t_out.amount, is_fraud: t_out.is_synthetic_fraud,
+                                  timestamp: t_out.timestamp}) AS outgoing
+            RETURN incoming + outgoing AS edges
+        """, account_id=account_id)
+        record = result.single()
+        edges = [e for e in (record["edges"] if record else []) if e["source"] and e["target"]]
+        edges.sort(key=lambda e: e["timestamp"] or "", reverse=True)
+        return edges[:limit]
