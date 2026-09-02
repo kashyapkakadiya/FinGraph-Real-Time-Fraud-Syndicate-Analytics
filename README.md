@@ -181,6 +181,9 @@ see PIPELINE_AUDIT.md for details.
   fetches its connections via new /api/account/{id}/edges endpoint and merges them into the
   graph), account detail panel, fan-in threshold slider on the risk table, responsive canvas
   sizing.
+- Day 18: Automation rules engine — polls Neo4j every 15s, alerts (Slack webhook, with
+  console/log fallback if unconfigured) when an account exceeds fan_in >= 20 OR
+  pagerank_weighted >= 5.0. In-memory dedup for this run only (see Day 19 for durable dedup).
 
 ## Scope note
 This covers Week 1 (Ingestion Setup, Graph Schema) and Week 2 (Stream Processing, Cypher
