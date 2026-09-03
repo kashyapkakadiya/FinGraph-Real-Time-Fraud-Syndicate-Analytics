@@ -11,12 +11,13 @@ load_dotenv()
 URI = "bolt://localhost:7687"
 AUTH = ("neo4j", "fingraph123")
 
-SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL")  # unset -> console/file fallback
+SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL")
 ALERT_LOG_PATH = "alerts.log"
 
 POLL_INTERVAL_SECONDS = 15
-FAN_IN_THRESHOLD = 20          # matches "several sub-threshold senders" pattern
-PAGERANK_THRESHOLD = 5.0       # matches Day 14's centrality signal
+FAN_IN_THRESHOLD = 20
+PAGERANK_THRESHOLD = 5.0
+ALERT_COOLDOWN_MINUTES = 60
 
 RISK_QUERY = """
 MATCH (receiver:Account)
@@ -30,16 +31,33 @@ RETURN receiver.account_id AS account_id, fan_in, pagerank_weighted
 ORDER BY fan_in DESC
 """
 
+RECENT_ALERT_CHECK = """
+MATCH (a:Account {account_id: $account_id})-[:HAS_ALERT]->(alert:Alert)
+WHERE alert.created_at > datetime() - duration({minutes: $cooldown_minutes})
+RETURN count(alert) AS recent_alert_count
+"""
 
-def format_alert(account: dict) -> str:
+CREATE_ALERT = """
+MATCH (a:Account {account_id: $account_id})
+CREATE (alert:Alert {
+    alert_id: randomUUID(),
+    reason: $reason,
+    fan_in: $fan_in,
+    pagerank_weighted: $pagerank_weighted,
+    created_at: datetime()
+})
+CREATE (a)-[:HAS_ALERT]->(alert)
+RETURN alert.alert_id AS alert_id
+"""
+
+
+def format_reason(account: dict) -> str:
     reasons = []
     if account["fan_in"] and account["fan_in"] >= FAN_IN_THRESHOLD:
         reasons.append(f"fan_in={account['fan_in']} (>= {FAN_IN_THRESHOLD})")
     if account["pagerank_weighted"] and account["pagerank_weighted"] >= PAGERANK_THRESHOLD:
         reasons.append(f"pagerank={account['pagerank_weighted']:.2f} (>= {PAGERANK_THRESHOLD})")
-    reason_str = " and ".join(reasons)
-    return (f"🚨 FinGraph risk alert: {account['account_id']} exceeded threshold "
-            f"({reason_str}) at {datetime.now(timezone.utc).isoformat()}")
+    return " and ".join(reasons)
 
 
 def send_alert(message: str):
@@ -52,14 +70,30 @@ def send_alert(message: str):
         except requests.RequestException as e:
             print(f"[Slack send failed, falling back to log] {e}")
 
-    # Fallback: console + append to a local log file, so this is fully
-    # demoable without any external service configured.
     print(f"[ALERT - no Slack configured] {message}")
     with open(ALERT_LOG_PATH, "a") as f:
         f.write(message + "\n")
 
 
-def poll_once(session, already_alerted: set):
+def already_alerted_recently(session, account_id: str) -> bool:
+    result = session.run(
+        RECENT_ALERT_CHECK, account_id=account_id, cooldown_minutes=ALERT_COOLDOWN_MINUTES
+    )
+    return result.single()["recent_alert_count"] > 0
+
+
+def record_alert(session, account: dict, reason: str):
+    session.run(
+        CREATE_ALERT,
+        account_id=account["account_id"],
+        reason=reason,
+        fan_in=account["fan_in"],
+        pagerank_weighted=account["pagerank_weighted"],
+    )
+
+
+def poll_once(session) -> int:
+    """Runs one poll cycle. Returns the number of NEW alerts fired."""
     result = session.run(
         RISK_QUERY,
         fan_in_threshold=FAN_IN_THRESHOLD,
@@ -69,25 +103,29 @@ def poll_once(session, already_alerted: set):
 
     new_alerts = 0
     for account in accounts:
-        if account["account_id"] in already_alerted:
+        if already_alerted_recently(session, account["account_id"]):
             continue
-        send_alert(format_alert(account))
-        already_alerted.add(account["account_id"])
+
+        reason = format_reason(account)
+        message = (f"🚨 FinGraph risk alert: {account['account_id']} exceeded threshold "
+                   f"({reason}) at {datetime.now(timezone.utc).isoformat()}")
+        send_alert(message)
+        record_alert(session, account, reason)
         new_alerts += 1
 
     print(f"Poll complete: {len(accounts)} accounts over threshold, "
-          f"{new_alerts} new alert(s) fired.")
+          f"{new_alerts} new alert(s) fired (cooldown: {ALERT_COOLDOWN_MINUTES}min).")
+    return new_alerts
 
 
 def main():
-    already_alerted = set()
     with GraphDatabase.driver(URI, auth=AUTH) as driver:
         driver.verify_connectivity()
         print(f"Rules engine started. Polling every {POLL_INTERVAL_SECONDS}s. "
               f"Slack: {'configured' if SLACK_WEBHOOK_URL else 'NOT configured (using log fallback)'}")
         with driver.session() as session:
             while True:
-                poll_once(session, already_alerted)
+                poll_once(session)
                 time.sleep(POLL_INTERVAL_SECONDS)
 
 

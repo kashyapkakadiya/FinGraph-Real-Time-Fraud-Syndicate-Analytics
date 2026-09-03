@@ -184,6 +184,11 @@ see PIPELINE_AUDIT.md for details.
 - Day 18: Automation rules engine — polls Neo4j every 15s, alerts (Slack webhook, with
   console/log fallback if unconfigured) when an account exceeds fan_in >= 20 OR
   pagerank_weighted >= 5.0. In-memory dedup for this run only (see Day 19 for durable dedup).
+- Day 19: Durable alert dedup — alert history now persisted as (:Account)-[:HAS_ALERT]->
+  (:Alert) nodes in Neo4j instead of an in-memory set, so cooldown survives a restart.
+  Switched from "alert once ever" to a 60-minute cooldown window. Added
+  test_rules_engine.py, an integration test proving the cooldown logic against a
+  synthetic test account (all 3 assertions pass).
 
 ## Scope note
 This covers Week 1 (Ingestion Setup, Graph Schema) and Week 2 (Stream Processing, Cypher
