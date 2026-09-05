@@ -13,18 +13,12 @@ NEO4J_AUTH = ("neo4j", "fingraph123")
 JAR_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "jars",
                          "flink-sql-connector-kafka-3.2.0-1.19.jar")
 
-# Column order MUST match the final SELECT below -- we zip these together
-# per row since PyFlink Row objects behave like tuples.
 COLUMNS = [
     "transaction_id", "timestamp", "sender_account", "sender_person", "sender_ip",
     "receiver_account", "receiver_person", "receiver_ip", "amount",
     "sender_bank", "receiver_bank", "is_synthetic_fraud", "syndicate_id",
 ]
 
-# Upserts the full sub-graph for one transaction: both people, both accounts,
-# both banks, both IPs, and the TRANSFERRED_TO edge itself. MERGE means
-# "create if missing, otherwise match" -- so re-running this is always safe
-# and never creates duplicate nodes.
 UPSERT_CYPHER = """
 MERGE (sp:Person {person_id: $sender_person})
 MERGE (rp:Person {person_id: $receiver_person})
@@ -79,7 +73,6 @@ def main():
         )
     """)
 
-    # Same cleaning/dedup logic from Day 7.
     t_env.create_temporary_view("transactions_clean", t_env.sql_query("""
         SELECT * FROM (
             SELECT *,

@@ -31,7 +31,7 @@ def cleanup_test_account(session):
 def run_test():
     with GraphDatabase.driver(URI, auth=AUTH) as driver:
         with driver.session() as session:
-            cleanup_test_account(session)  # in case a previous run left state
+            cleanup_test_account(session)
             setup_test_account(session)
 
             test_account = {
@@ -40,22 +40,16 @@ def run_test():
                 "pagerank_weighted": PAGERANK_THRESHOLD + 1,
             }
 
-            # --- Check 1: account has no alert history yet ---
             assert not already_alerted_recently(session, TEST_ACCOUNT_ID), \
                 "FAIL: test account should have no alert history before first alert"
             print("PASS: fresh account has no recent alert")
 
-            # --- Fire the first alert ---
             record_alert(session, test_account, "test threshold breach")
 
-            # --- Check 2: immediately after, it SHOULD be considered recently alerted ---
             assert already_alerted_recently(session, TEST_ACCOUNT_ID), \
                 "FAIL: account should be in cooldown immediately after an alert"
             print("PASS: account correctly in cooldown after first alert")
 
-            # --- Check 3: this is exactly what prevents a re-alert on the next poll ---
-            # (poll_once() checks already_alerted_recently() before ever calling
-            # record_alert() again, so cooldown=True here means "no duplicate alert")
             print("PASS: durable dedup verified -- a second poll right now would NOT re-alert")
 
             cleanup_test_account(session)

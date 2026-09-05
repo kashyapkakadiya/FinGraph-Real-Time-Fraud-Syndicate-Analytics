@@ -6,7 +6,6 @@ from entities import Bank, Person, Account
 
 
 class World:
-    """Holds the pool of banks, people, and accounts transactions are drawn from."""
 
     def __init__(self, num_banks=5, num_people=200):
         self.banks = [Bank() for _ in range(num_banks)]
@@ -21,7 +20,6 @@ class World:
 
 
 def make_transaction(world: World) -> dict:
-    """A single normal, non-suspicious transaction between two random accounts."""
     sender = world.random_account()
     receiver = world.random_account(exclude=sender)
     amount = round(random.uniform(10, 5000), 2)
@@ -43,7 +41,6 @@ def make_transaction(world: World) -> dict:
 
 
 def generate_mixed_stream(world: World, normal_count=200, fraud_ring_count=2, smurfs_per_ring=50):
-    """A realistic batch: mostly normal transactions with occasional syndicate activity buried inside."""
     from syndicate import generate_starburst_pattern
 
     stream = [make_transaction(world) for _ in range(normal_count)]

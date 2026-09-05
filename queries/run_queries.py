@@ -14,13 +14,6 @@ def canonicalize_cycle(chain):
 
 
 def timed_run(session, cypher, params=None, warm_runs=1):
-    """
-    Runs the query (warm_runs + 1) times, discarding the first ("cold") run
-    so query-plan compilation cost isn't counted. Returns the LAST run's
-    records plus both client wall-clock and server-reported timing (from
-    the driver's ResultSummary -- this is what Neo4j itself says it spent,
-    independent of Python-side overhead).
-    """
     records, summary, client_ms = None, None, None
     for _ in range(warm_runs + 1):
         start = time.perf_counter()

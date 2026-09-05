@@ -5,17 +5,10 @@ AUTH = ("neo4j", "fingraph123")
 
 GRAPH_NAME = "fingraph-accounts"
 
-# The 6 giant WCC components from Day 12 that we suspect are over-merged.
 GIANT_WCC_COMPONENT_IDS = [1385, 65, 958, 142, 2470, 0]
 
 
 def run_louvain(session):
-    """
-    Writes 'louvain_community_id' onto every Account node. Louvain is
-    iterative and hierarchical -- by default this writes the FINAL
-    (most granular useful) level, which is what we want for splitting
-    apart WCC's giant components.
-    """
     result = session.run(f"""
         CALL gds.louvain.write('{GRAPH_NAME}', {{
             writeProperty: 'louvain_community_id'
@@ -47,11 +40,6 @@ def louvain_top_communities(session, top_n=10):
 
 
 def compare_against_giant_wcc_components(session):
-    """
-    The real test: for each giant WCC component from Day 12, how many
-    DISTINCT Louvain communities did it get split into? More than 1 means
-    Louvain successfully separated sub-structure that WCC had merged.
-    """
     print(f"\n{'=' * 60}\nWCC giant components -> Louvain sub-communities\n{'=' * 60}")
     for wcc_id in GIANT_WCC_COMPONENT_IDS:
         result = session.run("""

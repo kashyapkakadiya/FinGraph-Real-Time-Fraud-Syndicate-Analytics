@@ -7,7 +7,6 @@ AUTH = ("neo4j", "fingraph123")
 
 app = FastAPI(title="FinGraph API")
 
-# Allow the React dev server (Day 16) to call this API from the browser.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000", "http://localhost:5173"],
@@ -25,17 +24,6 @@ def shutdown():
 
 @app.get("/api/stats")
 def get_stats():
-    """
-    Top-level numbers for a dashboard header: accounts, transactions, fraud rate.
-
-    NOTE: an earlier version of this query did
-        MATCH (a:Account) OPTIONAL MATCH ()-[t:TRANSFERRED_TO]->()
-    -- two patterns sharing no variable, which Neo4j joins as a CARTESIAN
-    PRODUCT (every account paired with every relationship), inflating
-    transaction_count to accounts * real_transactions. Fixed by running each
-    count in its own CALL {} subquery, so they're computed independently and
-    combined as a single row instead of multiplied together.
-    """
     with driver.session() as session:
         result = session.run("""
             CALL {
@@ -58,10 +46,6 @@ def get_stats():
 
 @app.get("/api/risk-scores")
 def get_risk_scores(limit: int = 25):
-    """
-    Blended risk view (Day 14's approach): fan-in, WCC component,
-    Louvain community, and weighted PageRank score together.
-    """
     with driver.session() as session:
         result = session.run("""
             MATCH (receiver:Account)
@@ -86,11 +70,6 @@ def get_risk_scores(limit: int = 25):
 
 @app.get("/api/graph")
 def get_graph(limit: int = 150):
-    """
-    Nodes + edges in a shape a force-directed frontend (D3/vis.js/react-force-graph)
-    can consume directly. Ordered by recency so the view reflects the newest
-    activity, same fix applied to the README's Browser query.
-    """
     with driver.session() as session:
         result = session.run("""
             MATCH (sender:Account)-[t:TRANSFERRED_TO]->(receiver:Account)
@@ -108,14 +87,23 @@ def get_graph(limit: int = 150):
         for e in edges:
             node_ids.add(e["source"])
             node_ids.add(e["target"])
-        nodes = [{"id": nid} for nid in node_ids]
+
+        if node_ids:
+            node_result = session.run("""
+                MATCH (a:Account) WHERE a.account_id IN $ids
+                RETURN a.account_id AS id,
+                       a.louvain_community_id AS louvain_community,
+                       a.pagerank_weighted AS pagerank_weighted
+            """, ids=list(node_ids))
+            nodes = [dict(r) for r in node_result]
+        else:
+            nodes = []
 
         return {"nodes": nodes, "edges": edges}
 
 
 @app.get("/api/account/{account_id}")
 def get_account(account_id: str):
-    """Detail view for a single account -- what a dashboard drill-down click hits."""
     with driver.session() as session:
         result = session.run("""
             MATCH (a:Account {account_id: $account_id})
@@ -138,12 +126,6 @@ def get_account(account_id: str):
 
 @app.get("/api/account/{account_id}/edges")
 def get_account_edges(account_id: str, limit: int = 50):
-    """
-    An account's immediate incoming + outgoing transactions, in the same
-    {source, target, amount, is_fraud, timestamp} shape /api/graph uses --
-    this is what the dashboard calls when a node is clicked, to expand the
-    graph outward from that account ("trace the money trail").
-    """
     with driver.session() as session:
         result = session.run("""
             MATCH (a:Account {account_id: $account_id})

@@ -7,7 +7,6 @@ GRAPH_NAME = "fingraph-accounts"
 
 
 def run_pagerank_unweighted(session):
-    """Pure structural importance -- every edge counts equally."""
     session.run(f"""
         CALL gds.pageRank.write('{GRAPH_NAME}', {{
             writeProperty: 'pagerank_unweighted'
@@ -18,7 +17,6 @@ def run_pagerank_unweighted(session):
 
 
 def run_pagerank_weighted(session):
-    """Amount-weighted -- a $9,800 transfer contributes more than a $50 one."""
     session.run(f"""
         CALL gds.pageRank.write('{GRAPH_NAME}', {{
             writeProperty: 'pagerank_weighted',
@@ -43,11 +41,6 @@ def top_by_pagerank(session, property_name, top_n=15):
 
 
 def blended_risk_view(session, top_n=15):
-    """
-    Combines yesterday's structural signals with today's PageRank into one
-    view -- this is what a real risk dashboard would actually show: not one
-    metric in isolation, but several signals corroborating each other.
-    """
     result = session.run("""
         MATCH (receiver:Account)
         OPTIONAL MATCH (sender:Account)-[t:TRANSFERRED_TO]->(receiver)

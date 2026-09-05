@@ -26,11 +26,6 @@ def stream_transactions(
     tx_per_second: float = 3.0,
     syndicate_chance: float = 0.02,
 ):
-    """
-    Continuously streams transactions to Kafka in real time.
-    Every tick there's a small chance a whole syndicate burst fires at once,
-    mimicking real fraud rings acting in a short window.
-    """
     end_time = time.time() + duration_seconds
     sent = 0
 

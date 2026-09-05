@@ -7,12 +7,6 @@ GRAPH_NAME = "fingraph-accounts"
 
 
 def run_wcc(session):
-    """
-    Runs WCC and writes the result as a 'wcc_component_id' property on every
-    Account node -- this makes the grouping queryable afterward without
-    re-running the algorithm, and is what the dashboard (Day 16-17) will
-    color-code by.
-    """
     result = session.run(f"""
         CALL gds.wcc.write('{GRAPH_NAME}', {{
             writeProperty: 'wcc_component_id'
@@ -28,7 +22,6 @@ def run_wcc(session):
 
 
 def largest_components(session, top_n=10):
-    """Which components are actually big enough to be interesting."""
     result = session.run("""
         MATCH (a:Account)
         WITH a.wcc_component_id AS component_id, collect(a.account_id) AS members
@@ -43,11 +36,6 @@ def largest_components(session, top_n=10):
 
 
 def component_fraud_ratios(session, top_n=10):
-    """
-    For each component: how many of its internal transactions were flagged
-    fraud. A component that's both LARGE and HIGH fraud ratio is exactly
-    what a syndicate cluster looks like.
-    """
     result = session.run("""
         MATCH (a:Account)-[t:TRANSFERRED_TO]->(b:Account)
         WHERE a.wcc_component_id = b.wcc_component_id

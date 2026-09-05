@@ -20,9 +20,6 @@ def project_graph(session):
         RETURN graphName
     """)
 
-    # Day 14 update: now also projects 'amount' as a relationship property,
-    # so PageRank (and any future algorithm) can optionally weight by
-    # transaction size instead of treating every edge equally.
     result = session.run(f"""
         CALL gds.graph.project(
             '{GRAPH_NAME}',

@@ -12,6 +12,7 @@ export default function App() {
 
   const [selectedAccount, setSelectedAccount] = useState(null)
   const [minFanIn, setMinFanIn] = useState(0)
+  const [initialGraphData, setInitialGraphData] = useState({ nodes: [], links: [] })
 
   const graphContainerRef = useRef(null)
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 })
@@ -31,7 +32,9 @@ export default function App() {
         setRiskScores(await riskRes.json())
 
         const raw = await graphRes.json()
-        setGraphData(toGraphShape(raw.nodes, raw.edges))
+        const shaped = toGraphShape(raw.nodes, raw.edges)
+        setGraphData(shaped)
+        setInitialGraphData(shaped)
       } catch (err) {
         setError(err.message)
       } finally {
@@ -41,7 +44,6 @@ export default function App() {
     loadAll()
   }, [])
 
-  // Make the graph canvas fill its container instead of a fixed size.
   useEffect(() => {
     function updateSize() {
       if (graphContainerRef.current) {
@@ -66,9 +68,6 @@ export default function App() {
 
       setSelectedAccount(detail)
 
-      // "Trace the money trail": merge this account's edges into the
-      // existing graph instead of replacing it, so expanding one node
-      // keeps everything already on screen.
       setGraphData((prev) => {
         const existingNodeIds = new Set(prev.nodes.map((n) => n.id))
         const newNodeIds = new Set()
@@ -124,14 +123,27 @@ export default function App() {
           <h2 style={styles.sectionTitle}>
             Live Transaction Graph — click a node to trace its connections
           </h2>
+          <div style={styles.legendRow}>
+            <LegendSwatch color="#e63946" label="Fraud edge" isLine />
+            <LegendSwatch color="#cccccc" label="Normal edge" isLine />
+            <LegendSwatch color="#ffd166" label="Selected account" />
+            <span style={{ color: '#999', fontSize: '0.8rem' }}>Node color = Louvain community</span>
+            <button onClick={() => { setGraphData(initialGraphData); setSelectedAccount(null) }} style={styles.resetButton}>
+              Reset view
+            </button>
+          </div>
           <ForceGraph2D
             graphData={graphData}
             width={dimensions.width}
             height={dimensions.height}
             nodeLabel="id"
             nodeColor={(node) =>
-              selectedAccount && node.id === selectedAccount.account_id ? '#ffd166' : '#c084c4'
+              selectedAccount && node.id === selectedAccount.account_id
+                ? '#ffd166'
+                : colorForCommunity(node.louvain_community)
             }
+            nodeRelSize={5}
+            nodeVal={(node) => 1 + Math.min(node.pagerank_weighted || 0, 10)}
             linkColor={(link) => (link.is_fraud ? '#e63946' : '#cccccc')}
             linkWidth={(link) => (link.is_fraud ? 2 : 0.5)}
             linkDirectionalArrowLength={4}
@@ -208,6 +220,15 @@ function toGraphShape(nodes, edges) {
   }
 }
 
+const COMMUNITY_PALETTE = [
+  '#c084c4', '#f4a261', '#2a9d8f', '#e76f51', '#8ecae6',
+  '#ffb703', '#fb8500', '#06d6a0', '#ef476f', '#118ab2',
+]
+function colorForCommunity(communityId) {
+  if (communityId === null || communityId === undefined) return '#666'
+  return COMMUNITY_PALETTE[communityId % COMMUNITY_PALETTE.length]
+}
+
 function StatCard({ label, value, highlight }) {
   return (
     <div style={{ ...styles.statCard, ...(highlight ? styles.statCardHighlight : {}) }}>
@@ -223,6 +244,21 @@ function DetailRow({ label, value }) {
       <span style={{ color: '#999' }}>{label}</span>
       <span>{value ?? '—'}</span>
     </div>
+  )
+}
+
+function LegendSwatch({ color, label, isLine }) {
+  return (
+    <span style={styles.legendItem}>
+      <span
+        style={
+          isLine
+            ? { ...styles.legendLine, background: color }
+            : { ...styles.legendDot, background: color }
+        }
+      />
+      {label}
+    </span>
   )
 }
 
@@ -243,8 +279,16 @@ const styles = {
   clickableRow: { cursor: 'pointer' },
   filterLabel: { display: 'block', fontSize: '0.85rem', color: '#999' },
   detailPanel: {
-    position: 'absolute', top: 50, right: 10, background: '#1a1a22',
+    position: 'absolute', top: 90, right: 10, background: '#1a1a22',
     border: '1px solid #333', borderRadius: 8, padding: '1rem', width: 240, fontSize: '0.85rem',
   },
   detailRow: { display: 'flex', justifyContent: 'space-between', padding: '0.25rem 0' },
+  legendRow: { display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem', flexWrap: 'wrap' },
+  legendItem: { display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem', color: '#ccc' },
+  legendDot: { width: 10, height: 10, borderRadius: '50%', display: 'inline-block' },
+  legendLine: { width: 16, height: 3, display: 'inline-block' },
+  resetButton: {
+    marginLeft: 'auto', background: '#2a2a35', color: '#eee', border: '1px solid #444',
+    borderRadius: 6, padding: '0.3rem 0.75rem', fontSize: '0.8rem', cursor: 'pointer',
+  },
 }

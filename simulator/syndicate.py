@@ -7,14 +7,12 @@ from generator import World
 
 
 def make_shell_account(world: World) -> Account:
-    """A dedicated 'collector' account — the syndicate's destination."""
     owner = Person()
     bank = random.choice(world.banks)
     return Account(owner=owner, bank=bank, balance=round(random.uniform(0, 500), 2))
 
 
 def make_smurf_accounts(world: World, count: int) -> list[Account]:
-    """Distinct 'mule' accounts with no shared IPs — each funnels micro-transactions."""
     accounts = []
     for _ in range(count):
         owner = Person()
@@ -24,11 +22,6 @@ def make_smurf_accounts(world: World, count: int) -> list[Account]:
 
 
 def generate_starburst_pattern(world: World, num_smurfs: int = 50) -> list[dict]:
-    """
-    Generates one full 'Starburst': num_smurfs accounts each send a sub-threshold
-    amount ($9,000-$9,900) into a single shell account, staggered in time to look
-    unrelated to a rules-based system.
-    """
     shell = make_shell_account(world)
     smurfs = make_smurf_accounts(world, num_smurfs)
 

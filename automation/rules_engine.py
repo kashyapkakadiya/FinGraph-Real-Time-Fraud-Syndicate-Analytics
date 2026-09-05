@@ -93,7 +93,6 @@ def record_alert(session, account: dict, reason: str):
 
 
 def poll_once(session) -> int:
-    """Runs one poll cycle. Returns the number of NEW alerts fired."""
     result = session.run(
         RISK_QUERY,
         fan_in_threshold=FAN_IN_THRESHOLD,

@@ -4,7 +4,8 @@ A streaming graph-analytics pipeline that detects "smurfing" / money-laundering 
 real time, using Kafka -> PyFlink -> Neo4j.
 
 See [PIPELINE_AUDIT.md](./PIPELINE_AUDIT.md) for the full mid-project review, including the
-query-optimization story (188ms -> 4ms).
+query-optimization story (188ms -> 4ms) and
+[WEEK3_4_AUDIT.md](./WEEK3_4_AUDIT.md) for Weeks 3-4 (GDS algorithms, dashboard, automation).
 
 ## Problem
 Standard fraud rules (e.g. "flag transactions over $10,000") miss coordinated syndicates where
@@ -189,6 +190,8 @@ see PIPELINE_AUDIT.md for details.
   Switched from "alert once ever" to a 60-minute cooldown window. Added
   test_rules_engine.py, an integration test proving the cooldown logic against a
   synthetic test account (all 3 assertions pass).
+- Day 20: Dashboard node color (Louvain community) + size (PageRank) visualization, legend,
+  reset-view button. Final Week 3-4 review — WEEK3_4_AUDIT.md. All 20 days/commits complete.
 
 ## Scope note
 This covers Week 1 (Ingestion Setup, Graph Schema) and Week 2 (Stream Processing, Cypher
