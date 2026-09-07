@@ -12,7 +12,8 @@ export default function App() {
 
   const [selectedAccount, setSelectedAccount] = useState(null)
   const [minFanIn, setMinFanIn] = useState(0)
-  const [initialGraphData, setInitialGraphData] = useState({ nodes: [], links: [] })
+  const [rawGraph, setRawGraph] = useState({ nodes: [], edges: [] })
+  const [resetKey, setResetKey] = useState(0)
 
   const graphContainerRef = useRef(null)
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 })
@@ -32,9 +33,8 @@ export default function App() {
         setRiskScores(await riskRes.json())
 
         const raw = await graphRes.json()
-        const shaped = toGraphShape(raw.nodes, raw.edges)
-        setGraphData(shaped)
-        setInitialGraphData(shaped)
+        setRawGraph(raw)
+        setGraphData(toGraphShape(raw.nodes, raw.edges))
       } catch (err) {
         setError(err.message)
       } finally {
@@ -128,11 +128,19 @@ export default function App() {
             <LegendSwatch color="#cccccc" label="Normal edge" isLine />
             <LegendSwatch color="#ffd166" label="Selected account" />
             <span style={{ color: '#999', fontSize: '0.8rem' }}>Node color = Louvain community</span>
-            <button onClick={() => { setGraphData(initialGraphData); setSelectedAccount(null) }} style={styles.resetButton}>
+            <button
+              onClick={() => {
+                setGraphData(toGraphShape(rawGraph.nodes, rawGraph.edges))
+                setSelectedAccount(null)
+                setResetKey((k) => k + 1)
+              }}
+              style={styles.resetButton}
+            >
               Reset view
             </button>
           </div>
           <ForceGraph2D
+            key={resetKey}
             graphData={graphData}
             width={dimensions.width}
             height={dimensions.height}
@@ -210,7 +218,7 @@ export default function App() {
 
 function toGraphShape(nodes, edges) {
   return {
-    nodes,
+    nodes: nodes.map((n) => ({ ...n })),
     links: edges.map((e) => ({
       source: e.source,
       target: e.target,
